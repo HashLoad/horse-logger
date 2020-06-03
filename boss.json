@@ -1,0 +1,11 @@
+{
+	"name": "horse-logger",
+	"description": "Middleware for access logging in HORSE",
+	"version": "1.0.0",
+	"homepage": "",
+	"mainsrc": "scr/",
+	"projects": [],
+	"dependencies": {
+		"github.com/HashLoad/horse": "^1.4.0"
+	}
+}
