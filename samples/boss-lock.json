@@ -1,0 +1,22 @@
+{
+	"hash": "d41d8cd98f00b204e9800998ecf8427e",
+	"updated": "2020-06-03T10:54:14.0172469-03:00",
+	"installedModules": {
+		"github.com/hashload/horse": {
+			"name": "horse",
+			"version": "1.7.3",
+			"hash": "66c1cafebc6ec755c77b01d51d6c76d6",
+			"artifacts": {},
+			"failed": false,
+			"changed": false
+		},
+		"github.com/hashload/horse-logger": {
+			"name": "horse-logger",
+			"version": "0.1.0",
+			"hash": "cc4f2fb89d46233a5daf89077fd9dfa1",
+			"artifacts": {},
+			"failed": false,
+			"changed": false
+		}
+	}
+}
