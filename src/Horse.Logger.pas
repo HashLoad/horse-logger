@@ -226,6 +226,8 @@ var
 begin
   FCriticalSection.Enter;
   try
+    if not DirectoryExists(FLogDir) then
+      ForceDirectories(FLogDir);
     LFilename := FLogDir + PathDelim + 'access_' + FormatDateTime('yyyy-mm-dd', Now()) + '.log';
     AssignFile(LTextFile, LFilename);
     if (FileExists(LFilename)) then
@@ -249,7 +251,7 @@ end;
 function THorseLogger.SetLogDir(ALogDir: string): THorseLogger;
 begin
   Result := Self;
-  FLogDir := ALogDir;
+  FLogDir := ALogDir.TrimRight([PathDelim]);
 end;
 
 class destructor THorseLogger.UnInitialize;
