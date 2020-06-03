@@ -41,6 +41,12 @@ type
     class function New: THorseCallback; overload;
   end;
 
+const
+  DEFAULT_HORSE_LOG_FORMAT =
+  '${request_remote_addr} [${time}] ${request_user_agent}'+
+  ' "${request_method} ${request_path_info} ${request_version}"'+
+  ' ${response_status} ${response_content_length}';
+
 implementation
 
 uses
@@ -200,7 +206,7 @@ var
   LLogFormat: string;
   LLogDir: string;
 begin
-  LLogFormat := '${request_remote_addr} [${time}] ${request_user_agent} "${request_method} ${request_path_info} ${request_version}" ${response_status} ${response_content_length}';
+  LLogFormat := DEFAULT_HORSE_LOG_FORMAT;
   LLogDir := ExtractFileDir(ParamStr(0));
   Result := THorseLogger.New(THorseLoggerConfig.Create(LLogFormat, LLogDir));
 end;
