@@ -28,6 +28,8 @@ begin
     end);
 
   App.Start;
+
+end.
 ```
 
 Sample Horse Logger with custom log format and log folder
@@ -52,4 +54,6 @@ begin
     end);
 
   App.Start;
+
+end.
 ```
