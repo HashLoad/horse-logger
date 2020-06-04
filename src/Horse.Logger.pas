@@ -35,7 +35,6 @@ type
     function SetLogDir(ALogDir: string): THorseLogger;
     function NewLog(ALog: string): THorseLogger;
     procedure Execute; override;
-    class destructor UnInitialize;
     class function GetDefault: THorseLogger;
     class function New(AConfig: THorseLoggerConfig): THorseCallback; overload;
     class function New: THorseCallback; overload;
@@ -175,6 +174,7 @@ begin
   if not Assigned(FHorseLogger) then
   begin
     FHorseLogger := THorseLogger.Create(True);
+    FHorseLogger.FreeOnTerminate := True;
     FHorseLogger.Start;
   end;
   Result := FHorseLogger;
@@ -258,12 +258,6 @@ function THorseLogger.SetLogDir(ALogDir: string): THorseLogger;
 begin
   Result := Self;
   FLogDir := ALogDir.TrimRight([PathDelim]);
-end;
-
-class destructor THorseLogger.UnInitialize;
-begin
-  if Assigned(FHorseLogger) then
-    FHorseLogger.Free;
 end;
 
 class function THorseLogger.ValidateValue(AValue: TDateTime): string;
