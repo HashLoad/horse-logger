@@ -22,6 +22,7 @@ type
     FLogDir: string;
     FLogCache: TList<string>;
     procedure SaveLogCache;
+    procedure FreeInternalInstances;
     function ExtractLogCache: TArray<string>;
     class var FHorseLogger: THorseLogger;
     class function ValidateValue(AValue: Integer): string; overload;
@@ -35,6 +36,7 @@ type
     function SetLogDir(ALogDir: string): THorseLogger;
     function NewLog(ALog: string): THorseLogger;
     procedure Execute; override;
+    class destructor UnInitialize;
     class function GetDefault: THorseLogger;
     class function New(AConfig: THorseLoggerConfig): THorseCallback; overload;
     class function New: THorseCallback; overload;
@@ -49,7 +51,7 @@ const
 implementation
 
 uses
-  Web.HTTPApp;
+  Web.HTTPApp, System.DateUtils;
 
 { THorseLoggerConfig }
 
@@ -72,10 +74,7 @@ end;
 procedure THorseLogger.BeforeDestruction;
 begin
   inherited;
-  FEvent.SetEvent;
-  FLogCache.Free;
-  FEvent.Free;
-  FCriticalSection.Free;
+  FreeInternalInstances;
 end;
 
 class function THorseLogger.BuildLogger(AConfig: THorseLoggerConfig): THorseCallback;
@@ -84,18 +83,25 @@ begin
     var
       LWebRequest: TWebRequest;
       LWebResponse: TWebResponse;
+      LBeforeDateTime: TDateTime;
+      LAfterDateTime: TDateTime;
+      LMilliSecondsBetween: Integer;
       LLog: string;
     begin
       try
+        LBeforeDateTime := Now();
         ANext();
       finally
+        LAfterDateTime := Now();
+        LMilliSecondsBetween := MilliSecondsBetween(LAfterDateTime, LBeforeDateTime);
 
         LWebRequest := THorseHackRequest(ARequest).GetWebRequest;
         LWebResponse := THorseHackResponse(AResponse).GetWebResponse;
 
         LLog := AConfig.LogFormat;
 
-        LLog := LLog.Replace('${time}', ValidateValue(Now()));
+        LLog := LLog.Replace('${time}', ValidateValue(LBeforeDateTime));
+        LLog := LLog.Replace('${execution_time}', ValidateValue(LMilliSecondsBetween));
         LLog := LLog.Replace('${request_method}', ValidateValue(LWebRequest.Method));
         LLog := LLog.Replace('${request_version}', ValidateValue(LWebRequest.ProtocolVersion));
         LLog := LLog.Replace('${request_url}', ValidateValue(LWebRequest.URL));
@@ -195,6 +201,13 @@ begin
   Result := LLogCacheArray;
 end;
 
+procedure THorseLogger.FreeInternalInstances;
+begin
+  FLogCache.Free;
+  FEvent.Free;
+  FCriticalSection.Free;
+end;
+
 class function THorseLogger.New(AConfig: THorseLoggerConfig): THorseCallback;
 begin
   THorseLogger.GetDefault.SetLogDir(AConfig.LogDir);
@@ -258,6 +271,15 @@ function THorseLogger.SetLogDir(ALogDir: string): THorseLogger;
 begin
   Result := Self;
   FLogDir := ALogDir.TrimRight([PathDelim]);
+end;
+
+class destructor THorseLogger.UnInitialize;
+begin
+  if Assigned(FHorseLogger) then
+  begin
+    FHorseLogger.Terminate;
+    FHorseLogger.FEvent.SetEvent;
+  end;
 end;
 
 class function THorseLogger.ValidateValue(AValue: TDateTime): string;
