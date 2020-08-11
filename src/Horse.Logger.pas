@@ -91,8 +91,8 @@ begin
       LMilliSecondsBetween: Integer;
       LLog: string;
     begin
+      LBeforeDateTime := Now();
       try
-        LBeforeDateTime := Now();
         ANext();
       finally
         LAfterDateTime := Now();
