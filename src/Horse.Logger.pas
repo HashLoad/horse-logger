@@ -3,16 +3,14 @@ unit Horse.Logger;
 interface
 
 uses
-
-  System.SysUtils, System.SyncObjs, Horse, System.Classes,
-  System.Generics.Collections;
+  System.SysUtils, System.SyncObjs, Horse, System.Classes, System.Generics.Collections;
 
 type
-
   THorseLoggerConfig = record
     LogDir: string;
     LogFormat: string;
-    constructor Create(ALogFormat: string; ALogDir: string);
+    constructor Create(ALogFormat: string; ALogDir: string); overload;
+    constructor Create(ALogFormat: string); overload;
   end;
 
   THorseLogger = class(TThread)
@@ -44,9 +42,9 @@ type
 
 const
   DEFAULT_HORSE_LOG_FORMAT =
-  '${request_remote_addr} [${time}] ${request_user_agent}'+
-  ' "${request_method} ${request_path_info} ${request_version}"'+
-  ' ${response_status} ${response_content_length}';
+    '${request_remote_addr} [${time}] ${request_user_agent}'+
+    ' "${request_method} ${request_path_info} ${request_version}"'+
+    ' ${response_status} ${response_content_length}';
 
 implementation
 
@@ -59,6 +57,11 @@ constructor THorseLoggerConfig.Create(ALogFormat: string; ALogDir: string);
 begin
   LogFormat := ALogFormat;
   LogDir := ALogDir;
+end;
+
+constructor THorseLoggerConfig.Create(ALogFormat: string);
+begin
+  Create(ALogFormat, ExtractFileDir(ParamStr(0)));
 end;
 
 { THorseLogger }
@@ -146,7 +149,6 @@ begin
 
         THorseLogger.GetDefault.NewLog(LLog);
       end;
-
     end;
 end;
 
@@ -217,11 +219,9 @@ end;
 class function THorseLogger.New: THorseCallback;
 var
   LLogFormat: string;
-  LLogDir: string;
 begin
   LLogFormat := DEFAULT_HORSE_LOG_FORMAT;
-  LLogDir := ExtractFileDir(ParamStr(0));
-  Result := THorseLogger.New(THorseLoggerConfig.Create(LLogFormat, LLogDir));
+  Result := THorseLogger.New(THorseLoggerConfig.Create(LLogFormat));
 end;
 
 function THorseLogger.NewLog(ALog: string): THorseLogger;
