@@ -3,7 +3,7 @@ Middleware for access logging in HORSE
 
 ### For install in your project using [boss](https://github.com/HashLoad/boss):
 ``` sh
-$ boss install github.com/HashLoad/horse-logger
+$ boss install horse-logger
 ```
 
 ### Format
