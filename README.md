@@ -15,50 +15,38 @@ Possible values: `time`,`execution_time`,`request_method`,`request_version`,`req
 
 Sample Horse Logger
 ```delphi
-uses
-  Horse, Horse.Logger;
-
-var
-  App: THorse;
+uses Horse, Horse.Logger;
 
 begin
-  App := THorse.Create(9000);
+  THorse.Use(THorseLogger.New());
 
-  App.Use( THorseLogger.New() );
-
-  App.Post('ping',
+  THorse.Post('/ping',
     procedure(Req: THorseRequest; Res: THorseResponse; Next: TProc)
     begin
       Res.Send('pong');
     end);
 
-  App.Start;
-
+  THorse.Listen(9000);
 end.
 ```
 
 Sample Horse Logger with custom log format and log folder
 ```delphi
-uses
-  Horse, Horse.Logger;
+uses Horse, Horse.Logger;
 
 var
-  App: THorse;
   HorseLoggerConfig: THorseLoggerConfig;
 
 begin
-  App := THorse.Create(9000);
-
   HorseLoggerConfig := THorseLoggerConfig.Create('${time} - ${request_method} ${request_path_info}', '/var/log/horse');
-  App.Use( THorseLogger.New(HorseLoggerConfig) );
+  THorse.Use(THorseLogger.New(HorseLoggerConfig));
 
-  App.Post('ping',
+  THorse.Post('/ping',
     procedure(Req: THorseRequest; Res: THorseResponse; Next: TProc)
     begin
       Res.Send('pong');
     end);
 
-  App.Start;
-
+  THorse.Listen(9000);
 end.
 ```
