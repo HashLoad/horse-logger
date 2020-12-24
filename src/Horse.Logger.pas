@@ -6,13 +6,13 @@ unit Horse.Logger;
 interface
 
 uses
-  Horse, Horse.HTTP
+
   {$IFDEF FPC }
-    , SysUtils, Classes, SyncObjs, Generics.Collections
+  SysUtils, Classes, SyncObjs, Generics.Collections,
   {$ELSE}
-  , System.SysUtils, System.SyncObjs, , System.Classes, System.Generics.Collections
+  System.SysUtils, System.SyncObjs, System.Classes, System.Generics.Collections,
   {$ENDIF}
-  ;
+  Horse, Horse.HTTP, Horse.Utils.ClientIP;
 type
   { THorseLoggerConfig }
   THorseLoggerConfig = class
@@ -89,6 +89,7 @@ begin
     LLog := THorseLogger.GetDefault.FHorseLoggerConfig.LogFormat;
     LLog := LLog.Replace('${time}', THorseLogger.ValidateValue(LBeforeDateTime));
     LLog := LLog.Replace('${execution_time}', THorseLogger.ValidateValue(LMilliSecondsBetween));
+    LLog := LLog.Replace('${request_clientip}', THorseLogger.ValidateValue(ClientIP(ARequest)));
     LLog := LLog.Replace('${request_method}', THorseLogger.ValidateValue(LWebRequest.Method));
     LLog := LLog.Replace('${request_version}', THorseLogger.ValidateValue(LWebRequest.ProtocolVersion));
     LLog := LLog.Replace('${request_url}', THorseLogger.ValidateValue(LWebRequest.URL));
@@ -119,15 +120,15 @@ begin
     LLog := LLog.Replace('${response_content_length}', THorseLogger.ValidateValue(LWebResponse.ContentLength));
     LLog := LLog.Replace('${response_status}', THorseLogger.ValidateValue(LWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode{$ENDIF}));
     {$IF NOT DEFINED(FPC)}
-      LLog := LLog.Replace('${request_derived_from}', ValidateValue(LWebRequest.DerivedFrom));
-      LLog := LLog.Replace('${request_remote_ip}', ValidateValue(LWebRequest. RemoteIP));
-      LLog := LLog.Replace('${request_internal_path_info}', ValidateValue(LWebRequest.InternalPathInfo));
-      LLog := LLog.Replace('${request_raw_path_info}', ValidateValue(LWebRequest.RawPathInfo));
-      LLog := LLog.Replace('${request_cache_control}', ValidateValue(LWebRequest.CacheControl));
-      LLog := LLog.Replace('${response_realm}', ValidateValue(LWebResponse.Realm));
-      LLog := LLog.Replace('${response_log_message}', ValidateValue(LWebResponse.LogMessage));
-      LLog := LLog.Replace('${response_title}', ValidateValue(LWebResponse.Title));
-      LLog := LLog.Replace('${response_content_version}', ValidateValue(LWebResponse.ContentVersion));
+      LLog := LLog.Replace('${request_derived_from}', THorseLogger.ValidateValue(LWebRequest.DerivedFrom));
+      LLog := LLog.Replace('${request_remote_ip}', THorseLogger.ValidateValue(LWebRequest. RemoteIP));
+      LLog := LLog.Replace('${request_internal_path_info}', THorseLogger.ValidateValue(LWebRequest.InternalPathInfo));
+      LLog := LLog.Replace('${request_raw_path_info}', THorseLogger.ValidateValue(LWebRequest.RawPathInfo));
+      LLog := LLog.Replace('${request_cache_control}', THorseLogger.ValidateValue(LWebRequest.CacheControl));
+      LLog := LLog.Replace('${response_realm}', THorseLogger.ValidateValue(LWebResponse.Realm));
+      LLog := LLog.Replace('${response_log_message}', THorseLogger.ValidateValue(LWebResponse.LogMessage));
+      LLog := LLog.Replace('${response_title}', THorseLogger.ValidateValue(LWebResponse.Title));
+      LLog := LLog.Replace('${response_content_version}', THorseLogger.ValidateValue(LWebResponse.ContentVersion));
     {$ENDIF}
     THorseLogger.GetDefault.NewLog(LLog);
   end;
