@@ -36,7 +36,6 @@ type
     class function ValidateValue(AValue: Integer): string; overload;
     class function ValidateValue(AValue: string): string; overload;
     class function ValidateValue(AValue: TDateTime): string; overload;
-    class function BuildLogger: THorseCallback;
     class function GetDefaultHorseLogger: THorseLogger;
   public
     procedure AfterConstruction; override;
@@ -47,12 +46,11 @@ type
     class function GetDefault: THorseLogger;
     class function New(AConfig: THorseLoggerConfig): THorseCallback; overload;
     class function New: THorseCallback; overload;
-    class property HorseLoggerConfig : THorseLoggerConfig read FHorseLoggerConfig write FHorseLoggerConfig;
   end;
 
 const
   DEFAULT_HORSE_LOG_FORMAT =
-    '${request_remote_addr} [${time}] ${request_user_agent}'+
+    '${request_clientip} [${time}] ${request_user_agent}'+
     ' "${request_method} ${request_path_info} ${request_version}"'+
     ' ${response_status} ${response_content_length}';
 
@@ -83,8 +81,8 @@ begin
     LAfterDateTime := Now();
     LMilliSecondsBetween := MilliSecondsBetween(LAfterDateTime, LBeforeDateTime);
 
-    LWebRequest := THorseHackRequest(ARequest).GetWebRequest;
-    LWebResponse := THorseHackResponse(AResponse).GetWebResponse;
+    LWebRequest := THorseHackRequest(ARequest).RawWebRequest;
+    LWebResponse := THorseHackResponse(AResponse).RawWebResponse;
 
     LLog := THorseLogger.GetDefault.FHorseLoggerConfig.LogFormat;
     LLog := LLog.Replace('${time}', THorseLogger.ValidateValue(LBeforeDateTime));
@@ -161,11 +159,6 @@ begin
   FreeInternalInstances;
 end;
 
-class function THorseLogger.BuildLogger: THorseCallback;
-begin
-  Result := @Middleware;
-end;
-
 procedure THorseLogger.Execute;
 var
   LWait: TWaitResult;
@@ -227,7 +220,7 @@ end;
 class function THorseLogger.New(AConfig: THorseLoggerConfig): THorseCallback;
 begin
   Self.FHorseLoggerConfig := AConfig;
-  Result := Middleware();
+  Result := Middleware;
 end;
 
 class function THorseLogger.New: THorseCallback;
@@ -283,6 +276,8 @@ end;
 
 class destructor THorseLogger.UnInitialize;
 begin
+  if Assigned(FHorseLoggerConfig) then
+    FreeAndNil(FHorseLoggerConfig);
   if Assigned(FHorseLogger) then
   begin
     FHorseLogger.Terminate;
