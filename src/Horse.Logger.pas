@@ -1,20 +1,20 @@
 unit Horse.Logger;
 
 {$IFDEF FPC }
-{$MODE DELPHI}
+  {$MODE DELPHI}
 {$ENDIF}
+
 interface
 
 uses
-
   {$IFDEF FPC }
   SysUtils, Classes, SyncObjs, Generics.Collections,
   {$ELSE}
   System.SysUtils, System.SyncObjs, System.Classes, System.Generics.Collections,
   {$ENDIF}
   Horse, Horse.HTTP, Horse.Utils.ClientIP;
+
 type
-  { THorseLoggerConfig }
   THorseLoggerConfig = class
   public
     LogDir: string;
@@ -63,12 +63,9 @@ uses
     Web.HTTPApp, System.DateUtils
   {$ENDIF}
    ;
-{ THorseLoggerConfig }
 
 procedure Middleware(ARequest: THorseRequest; AResponse: THorseResponse; ANext: {$IF DEFINED(FPC)}TNextProc{$ELSE}TProc{$ENDIF});
 var
-  LWebRequest: {$IF DEFINED(FPC)}TRequest{$ELSE}TWebRequest{$ENDIF};
-  LWebResponse: {$IF DEFINED(FPC)}TResponse{$ELSE}TWebResponse{$ENDIF};
   LBeforeDateTime: TDateTime;
   LAfterDateTime: TDateTime;
   LMilliSecondsBetween: Integer;
@@ -81,52 +78,49 @@ begin
     LAfterDateTime := Now();
     LMilliSecondsBetween := MilliSecondsBetween(LAfterDateTime, LBeforeDateTime);
 
-    LWebRequest := THorseHackRequest(ARequest).RawWebRequest;
-    LWebResponse := THorseHackResponse(AResponse).RawWebResponse;
-
     LLog := THorseLogger.GetDefault.FHorseLoggerConfig.LogFormat;
     LLog := LLog.Replace('${time}', THorseLogger.ValidateValue(LBeforeDateTime));
     LLog := LLog.Replace('${execution_time}', THorseLogger.ValidateValue(LMilliSecondsBetween));
     LLog := LLog.Replace('${request_clientip}', THorseLogger.ValidateValue(ClientIP(ARequest)));
-    LLog := LLog.Replace('${request_method}', THorseLogger.ValidateValue(LWebRequest.Method));
-    LLog := LLog.Replace('${request_version}', THorseLogger.ValidateValue(LWebRequest.ProtocolVersion));
-    LLog := LLog.Replace('${request_url}', THorseLogger.ValidateValue(LWebRequest.URL));
-    LLog := LLog.Replace('${request_query}', THorseLogger.ValidateValue(LWebRequest.Query));
-    LLog := LLog.Replace('${request_path_info}', THorseLogger.ValidateValue(LWebRequest.PathInfo));
-    LLog := LLog.Replace('${request_path_translated}', THorseLogger.ValidateValue(LWebRequest.PathTranslated));
-    LLog := LLog.Replace('${request_cookie}', THorseLogger.ValidateValue(LWebRequest.Cookie));
-    LLog := LLog.Replace('${request_accept}', THorseLogger.ValidateValue(LWebRequest.Accept));
-    LLog := LLog.Replace('${request_from}', THorseLogger.ValidateValue(LWebRequest.From));
-    LLog := LLog.Replace('${request_host}', THorseLogger.ValidateValue(LWebRequest.Host));
-    LLog := LLog.Replace('${request_referer}', THorseLogger.ValidateValue(LWebRequest.Referer));
-    LLog := LLog.Replace('${request_user_agent}', THorseLogger.ValidateValue(LWebRequest.UserAgent));
-    LLog := LLog.Replace('${request_connection}', THorseLogger.ValidateValue(LWebRequest.Connection));
-    LLog := LLog.Replace('${request_remote_addr}', THorseLogger.ValidateValue(LWebRequest.RemoteAddr));
-    LLog := LLog.Replace('${request_remote_host}', THorseLogger.ValidateValue(LWebRequest.RemoteHost));
-    LLog := LLog.Replace('${request_script_name}', THorseLogger.ValidateValue(LWebRequest.ScriptName));
-    LLog := LLog.Replace('${request_server_port}', THorseLogger.ValidateValue(LWebRequest.ServerPort));
-    LLog := LLog.Replace('${request_script_name}', THorseLogger.ValidateValue(LWebRequest.ScriptName));
-    LLog := LLog.Replace('${request_authorization}', THorseLogger.ValidateValue(LWebRequest.Authorization));
-    LLog := LLog.Replace('${request_content_encoding}', THorseLogger.ValidateValue(LWebRequest.ContentEncoding));
-    LLog := LLog.Replace('${request_content_type}', THorseLogger.ValidateValue(LWebRequest.ContentType));
-    LLog := LLog.Replace('${request_content_length}', THorseLogger.ValidateValue(LWebRequest.ContentLength));
-    LLog := LLog.Replace('${response_server}', THorseLogger.ValidateValue(LWebResponse.Server));
-    LLog := LLog.Replace('${response_allow}', THorseLogger.ValidateValue(LWebResponse.Allow));
-    LLog := LLog.Replace('${response_location}', THorseLogger.ValidateValue(LWebResponse.Location));
-    LLog := LLog.Replace('${response_content_encoding}', THorseLogger.ValidateValue(LWebResponse.ContentEncoding));
-    LLog := LLog.Replace('${response_content_type}', THorseLogger.ValidateValue(LWebResponse.ContentType));
-    LLog := LLog.Replace('${response_content_length}', THorseLogger.ValidateValue(LWebResponse.ContentLength));
-    LLog := LLog.Replace('${response_status}', THorseLogger.ValidateValue(LWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode{$ENDIF}));
+    LLog := LLog.Replace('${request_method}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Method));
+    LLog := LLog.Replace('${request_version}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ProtocolVersion));
+    LLog := LLog.Replace('${request_url}', THorseLogger.ValidateValue(ARequest.RawWebRequest.URL));
+    LLog := LLog.Replace('${request_query}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Query));
+    LLog := LLog.Replace('${request_path_info}', THorseLogger.ValidateValue(ARequest.RawWebRequest.PathInfo));
+    LLog := LLog.Replace('${request_path_translated}', THorseLogger.ValidateValue(ARequest.RawWebRequest.PathTranslated));
+    LLog := LLog.Replace('${request_cookie}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Cookie));
+    LLog := LLog.Replace('${request_accept}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Accept));
+    LLog := LLog.Replace('${request_from}', THorseLogger.ValidateValue(ARequest.RawWebRequest.From));
+    LLog := LLog.Replace('${request_host}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Host));
+    LLog := LLog.Replace('${request_referer}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Referer));
+    LLog := LLog.Replace('${request_user_agent}', THorseLogger.ValidateValue(ARequest.RawWebRequest.UserAgent));
+    LLog := LLog.Replace('${request_connection}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Connection));
+    LLog := LLog.Replace('${request_remote_addr}', THorseLogger.ValidateValue(ARequest.RawWebRequest.RemoteAddr));
+    LLog := LLog.Replace('${request_remote_host}', THorseLogger.ValidateValue(ARequest.RawWebRequest.RemoteHost));
+    LLog := LLog.Replace('${request_script_name}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ScriptName));
+    LLog := LLog.Replace('${request_server_port}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ServerPort));
+    LLog := LLog.Replace('${request_script_name}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ScriptName));
+    LLog := LLog.Replace('${request_authorization}', THorseLogger.ValidateValue(ARequest.RawWebRequest.Authorization));
+    LLog := LLog.Replace('${request_content_encoding}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ContentEncoding));
+    LLog := LLog.Replace('${request_content_type}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ContentType));
+    LLog := LLog.Replace('${request_content_length}', THorseLogger.ValidateValue(ARequest.RawWebRequest.ContentLength));
+    LLog := LLog.Replace('${response_server}', THorseLogger.ValidateValue(AResponse.RawWebResponse.Server));
+    LLog := LLog.Replace('${response_allow}', THorseLogger.ValidateValue(AResponse.RawWebResponse.Allow));
+    LLog := LLog.Replace('${response_location}', THorseLogger.ValidateValue(AResponse.RawWebResponse.Location));
+    LLog := LLog.Replace('${response_content_encoding}', THorseLogger.ValidateValue(AResponse.RawWebResponse.ContentEncoding));
+    LLog := LLog.Replace('${response_content_type}', THorseLogger.ValidateValue(AResponse.RawWebResponse.ContentType));
+    LLog := LLog.Replace('${response_content_length}', THorseLogger.ValidateValue(AResponse.RawWebResponse.ContentLength));
+    LLog := LLog.Replace('${response_status}', THorseLogger.ValidateValue(AResponse.RawWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode{$ENDIF}));
     {$IF NOT DEFINED(FPC)}
-      LLog := LLog.Replace('${request_derived_from}', THorseLogger.ValidateValue(LWebRequest.DerivedFrom));
-      LLog := LLog.Replace('${request_remote_ip}', THorseLogger.ValidateValue(LWebRequest. RemoteIP));
-      LLog := LLog.Replace('${request_internal_path_info}', THorseLogger.ValidateValue(LWebRequest.InternalPathInfo));
-      LLog := LLog.Replace('${request_raw_path_info}', THorseLogger.ValidateValue(LWebRequest.RawPathInfo));
-      LLog := LLog.Replace('${request_cache_control}', THorseLogger.ValidateValue(LWebRequest.CacheControl));
-      LLog := LLog.Replace('${response_realm}', THorseLogger.ValidateValue(LWebResponse.Realm));
-      LLog := LLog.Replace('${response_log_message}', THorseLogger.ValidateValue(LWebResponse.LogMessage));
-      LLog := LLog.Replace('${response_title}', THorseLogger.ValidateValue(LWebResponse.Title));
-      LLog := LLog.Replace('${response_content_version}', THorseLogger.ValidateValue(LWebResponse.ContentVersion));
+    LLog := LLog.Replace('${request_derived_from}', THorseLogger.ValidateValue(ARequest.RawWebRequest.DerivedFrom));
+    LLog := LLog.Replace('${request_remote_ip}', THorseLogger.ValidateValue(ARequest.RawWebRequest. RemoteIP));
+    LLog := LLog.Replace('${request_internal_path_info}', THorseLogger.ValidateValue(ARequest.RawWebRequest.InternalPathInfo));
+    LLog := LLog.Replace('${request_raw_path_info}', THorseLogger.ValidateValue(ARequest.RawWebRequest.RawPathInfo));
+    LLog := LLog.Replace('${request_cache_control}', THorseLogger.ValidateValue(ARequest.RawWebRequest.CacheControl));
+    LLog := LLog.Replace('${response_realm}', THorseLogger.ValidateValue(AResponse.RawWebResponse.Realm));
+    LLog := LLog.Replace('${response_log_message}', THorseLogger.ValidateValue(AResponse.RawWebResponse.LogMessage));
+    LLog := LLog.Replace('${response_title}', THorseLogger.ValidateValue(AResponse.RawWebResponse.Title));
+    LLog := LLog.Replace('${response_content_version}', THorseLogger.ValidateValue(AResponse.RawWebResponse.ContentVersion));
     {$ENDIF}
     THorseLogger.GetDefault.NewLog(LLog);
   end;
@@ -292,10 +286,9 @@ end;
 
 class function THorseLogger.ValidateValue(AValue: string): string;
 begin
+  Result := AValue;
   if AValue.IsEmpty then
-    Result := '-'
-  else
-    Result := AValue;
+    Result := '-';
 end;
 
 class function THorseLogger.ValidateValue(AValue: Integer): string;

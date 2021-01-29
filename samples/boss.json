@@ -6,6 +6,7 @@
 	"mainsrc": "./",
 	"projects": [],
 	"dependencies": {
-		"github.com/hashload/horse-logger": "^1.0.1"
+		"github.com/dliocode/horse-utils-clientip": "^0.0.5",
+		"github.com/hashload/horse": "^2.0.10"
 	}
 }
