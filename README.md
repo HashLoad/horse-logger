@@ -2,7 +2,7 @@
 Middleware for access logging in HORSE
 
 #### For version 2.0.0, see the lumberjack branch:  
-  [horse-logger 2.0.0](https://github.com/HashLoad/horse-logger/tree/lumberjacks)
+  [horse-logger 2.0.0](https://github.com/HashLoad/horse-logger/tree/lumberjack)
 
 ### For install in your project using [boss](https://github.com/HashLoad/boss):
 ``` sh
