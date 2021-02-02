@@ -1,11 +1,11 @@
 {
 	"hash": "e418299cf5cb8b234a6a93d8c623f08b",
-	"updated": "2021-01-29T09:36:44.7160294-03:00",
+	"updated": "2021-02-02T10:18:23.3844853-03:00",
 	"installedModules": {
 		"github.com/dliocode/horse-utils-clientip": {
 			"name": "horse-utils-clientip",
-			"version": "0.0.5",
-			"hash": "e70e774b0e0e7248d1e9028fc9c4542e",
+			"version": "0.0.6",
+			"hash": "db4c16721abe55f9f8c42c7990101361",
 			"artifacts": {},
 			"failed": false,
 			"changed": false
