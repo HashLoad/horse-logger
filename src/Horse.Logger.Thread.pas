@@ -100,7 +100,17 @@ begin
   try
     LLogCache := THorseLoggerCache.Create;
     while GetLogCache.Count > 0 do
-      LLogCache.Add({$IFDEF FPC }GetLogCache.ExtractIndex(0){$ELSE}GetLogCache.ExtractAt(0){$ENDIF});
+      LLogCache.Add(
+      {$IFDEF FPC }
+        GetLogCache.ExtractIndex(0)
+      {$ELSE}
+        {$IFDEF CompilerVersion >= 33.0}
+        GetLogCache.ExtractAt(0)
+        {$ELSE}
+        GetLogCache.Extract(GetLogCache.Items[0])
+        {$ENDIF}
+      {$ENDIF}
+      );
     Result := LLogCache;
     ResetLogCache;
   finally
