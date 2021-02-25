@@ -70,7 +70,7 @@ begin
     LLog := THorseLoggerLog.Create;
     try
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time', THorseLoggerManager.ValidateValue(LBeforeDateTime));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('execution_time', THorseLoggerManager.ValidateValue(LMilliSecondsBetween).ToString);
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('execution_time', THorseLoggerManager.ValidateValue(LMilliSecondsBetween.ToString));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_clientip', THorseLoggerManager.ValidateValue(ClientIP(AReq)));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_method', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.Method));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_version', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ProtocolVersion));
@@ -92,14 +92,14 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_authorization', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.Authorization));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_encoding', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_type', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentType));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_length', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentLength));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_length', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentLength.ToString));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_server', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Server));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_allow', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Allow));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_location', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Location));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_encoding', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_type', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_length', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentLength.ToString));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_status', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode{$ENDIF}));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_status', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode.ToString{$ENDIF}));
 {$IF NOT DEFINED(FPC)}
       LLog.AddPair('request_derived_from', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.DerivedFrom));
       LLog.AddPair('request_remote_ip', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.RemoteIP));
@@ -191,7 +191,7 @@ end;
 
 class function THorseLoggerManager.ValidateValue(AValue: TDateTime): THorseLoggerLogItemString;
 begin
-  Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss:zzz', AValue));
+  Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
 end;
 
 end.
