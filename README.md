@@ -1,39 +1,33 @@
 # horse-logger
-Middleware for access logging in HORSE
+<b>horse-logger</b> is a official middleware to register log in APIs developed with the <a href="https://github.com/HashLoad/horse">Horse</a> framework.
+<br>We created a channel on Telegram for questions and support:<br><br>
+<a href="https://t.me/hashload">
+  <img src="https://img.shields.io/badge/telegram-join%20channel-7289DA?style=flat-square">
+</a>
 
-### For install in your project using [boss](https://github.com/HashLoad/boss):
+## ⚙️ Installation
+Installation is done using the [`boss install`](https://github.com/HashLoad/boss) command:
 ``` sh
 $ boss install horse-logger
 ```
-
-Values sent to providers: `time`,`execution_time`,`request_clientip`,`request_method`,`request_version`,`request_url`,`request_query`,`request_path_info`,`request_path_translated`,`request_cookie`,`request_accept`,`request_from`,`request_host`,`request_referer`,`request_user_agent`,`request_connection`,`request_derived_from`,`request_remote_addr`,`request_remote_host`,`request_script_name`,`request_server_port`,`request_remote_ip`,`request_internal_path_info`,`request_raw_path_info`,`request_cache_control`,`request_script_name`,`request_authorization`,`request_content_encoding`,`request_content_type`,`request_content_length`,`request_content_version`,`response_version`,`response_reason`,`response_server`,`response_realm`,`response_allow`,`response_location`,`response_log_message`,`response_title`,`response_content_encoding`,`response_content_type`,`response_content_length`,`response_content_version`,`response_status`
-
-### Sample Horse Logger
-
-Needs to install the logfile provider for the sample to work correctly.
-Run: boss install horse-logger-provider-logfile
-
-```delphi
-uses Horse, Horse.Logger, Horse.Logger.Provider.LogFile;
-
-begin
-
-  THorseLoggerManager.RegisterProvider( THorseLoggerProviderLogFile.New() );
-
-  THorse.Use( THorseLoggerManager.HorseCallback() );
-
-  THorse.Post('/ping',
-    procedure(Req: THorseRequest; Res: THorseResponse; Next: TProc)
-    begin
-      Res.Send('pong');
-    end);
-
-  THorse.Listen(9000);
-
-end.
+If you choose to install manually, simply add the following folders to your project, in *Project > Options > Resource Compiler > Directories and Conditionals > Include file search path*
+```
+../horse-logger/src
 ```
 
-### Official providers
+## ✔️ Compatibility
+This middleware is compatible with projects developed in:
+- [X] Delphi
+- [X] Lazarus
 
-- [Console](https://github.com/HashLoad/horse-logger-provider-console)
-- [LogFile](https://github.com/HashLoad/horse-logger-provider-logfile)
+## 🧬 Official Providers
+| Provider | Delphi | Lazarus |
+| --------------------------------------------------------------------- | -------------------- | --------------------------- |
+|  [console](https://github.com/HashLoad/horse-logger-provider-console) | &nbsp;&nbsp;&nbsp;✔️ | &nbsp;&nbsp;&nbsp;&nbsp;✔️ |
+|  [file](https://github.com/HashLoad/horse-logger-provider-logfile)    | &nbsp;&nbsp;&nbsp;✔️ | &nbsp;&nbsp;&nbsp;&nbsp;✔️ |
+
+## ⚡️ Quickstart
+Examples are provided within each provider.
+
+## ⚠️ License
+`horse-logger` is free and open-source middleware licensed under the [MIT License](https://github.com/HashLoad/horse-logger/blob/master/LICENSE). 
