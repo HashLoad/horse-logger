@@ -9,7 +9,7 @@ interface
 uses
 
 {$IFDEF FPC }
-  SysUtils, Classes, SyncObjs, Generics.Collections,
+  SysUtils, Classes, SyncObjs, Generics.Collections, fpjson,
 {$ELSE}
   System.SysUtils, System.JSON, System.SyncObjs, System.Classes, System.Generics.Collections,
 {$ENDIF}
@@ -93,12 +93,17 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_encoding', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_type', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_length', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentLength.ToString));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.Content));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_server', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Server));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_allow', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Allow));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_location', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Location));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_encoding', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_type', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_length', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentLength.ToString));
+      if (not Assigned(ARes.Content)) or (not ARes.Content.InheritsFrom({$IF DEFINED(FPC)}TJsonData{$ELSE}TJSONValue{$ENDIF})) then
+        LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Content))
+      else
+        LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)}TJsonData(ARes.Content).AsJSON{$ELSE}TJSONValue(ARes.Content).ToJSON{$ENDIF}));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_status', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode.ToString{$ENDIF}));
 {$IF NOT DEFINED(FPC)}
       LLog.AddPair('request_derived_from', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.DerivedFrom));
