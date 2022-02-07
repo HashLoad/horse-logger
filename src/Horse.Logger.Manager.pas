@@ -7,17 +7,14 @@ unit Horse.Logger.Manager;
 interface
 
 uses
-
 {$IFDEF FPC }
   SysUtils, Classes, SyncObjs, Generics.Collections, fpjson,
 {$ELSE}
   System.SysUtils, System.JSON, System.SyncObjs, System.Classes, System.Generics.Collections,
 {$ENDIF}
-  Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse,
-  Horse.Logger.Thread;
+  Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse, Horse.Logger.Thread;
 
 type
-
   THorseLoggerManager = class;
   THorseLoggerManagerClass = class of THorseLoggerManager;
 
@@ -100,22 +97,19 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_encoding', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_type', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_length', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentLength.ToString));
-      if (not Assigned(ARes.Content)) or (not ARes.Content.InheritsFrom({$IF DEFINED(FPC)}TJsonData{$ELSE}TJSONValue{$ENDIF})) then
-        LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Content))
-      else
-        LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)}TJsonData(ARes.Content).AsJSON{$ELSE}TJSONValue(ARes.Content).ToJSON{$ENDIF}));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Content));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_status', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode.ToString{$ENDIF}));
-{$IF NOT DEFINED(FPC)}
-      LLog.AddPair('request_derived_from', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.DerivedFrom));
-      LLog.AddPair('request_remote_ip', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.RemoteIP));
-      LLog.AddPair('request_internal_path_info', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.InternalPathInfo));
-      LLog.AddPair('request_raw_path_info', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.RawPathInfo));
-      LLog.AddPair('request_cache_control', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.CacheControl));
-      LLog.AddPair('response_realm', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Realm));
-      LLog.AddPair('response_log_message', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.LogMessage));
-      LLog.AddPair('response_title', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Title));
-      LLog.AddPair('response_content_version', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentVersion));
-{$ENDIF}
+      {$IF NOT DEFINED(FPC)}
+        LLog.AddPair('request_derived_from', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.DerivedFrom));
+        LLog.AddPair('request_remote_ip', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.RemoteIP));
+        LLog.AddPair('request_internal_path_info', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.InternalPathInfo));
+        LLog.AddPair('request_raw_path_info', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.RawPathInfo));
+        LLog.AddPair('request_cache_control', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.CacheControl));
+        LLog.AddPair('response_realm', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Realm));
+        LLog.AddPair('response_log_message', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.LogMessage));
+        LLog.AddPair('response_title', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Title));
+        LLog.AddPair('response_content_version', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentVersion));
+      {$ENDIF}
     finally
       THorseLoggerManager.GetDefaultManager.NewLog(LLog);
     end;
