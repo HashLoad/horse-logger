@@ -29,7 +29,8 @@ type
     class function GetProviderList: TList<IHorseLoggerProvider>;
     class function ValidateValue(AValue: Integer): THorseLoggerLogItemNumber; overload;
     class function ValidateValue(AValue: string): THorseLoggerLogItemString; overload;
-    class function ValidateValue(AValue: TDateTime): THorseLoggerLogItemString; overload;
+    // Incluido parametro AShort : Boolean - 2022-02-12
+	class function ValidateValue(AValue: TDateTime; AShort : Boolean): THorseLoggerLogItemString; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
   public
     { public declarations }
@@ -66,7 +67,10 @@ begin
     LMilliSecondsBetween := MilliSecondsBetween(LAfterDateTime, LBeforeDateTime);
     LLog := THorseLoggerLog.Create;
     try
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time', THorseLoggerManager.ValidateValue(LBeforeDateTime));
+	  // Incluido valor FALSE para parametro AShort - 2022-02-12
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time', THorseLoggerManager.ValidateValue(LBeforeDateTime, false));
+	  // Incluido opcao 'time_short' - 2022-02-12
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time_short', THorseLoggerManager.ValidateValue(LBeforeDateTime, true));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('execution_time', THorseLoggerManager.ValidateValue(LMilliSecondsBetween.ToString));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_clientip', THorseLoggerManager.ValidateValue(ClientIP(AReq)));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_method', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.Method));
@@ -188,9 +192,12 @@ begin
   Result := THorseLoggerLogItemString.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(AValue: TDateTime): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(AValue: TDateTime; AShort : Boolean): THorseLoggerLogItemString;
 begin
-  Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
+  if (AShort) then
+	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', AValue))
+  else
+    Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
 end;
 
 end.
