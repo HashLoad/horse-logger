@@ -20,22 +20,18 @@ type
 
   THorseLoggerManager = class(THorseLoggerThread)
   private
-    { private declarations }
     class var FProviderList: TList<IHorseLoggerProvider>;
     class var FDefaultManager: THorseLoggerManager;
   protected
-    { protected declarations }
     procedure DispatchLogCache; override;
     class function GetProviderList: TList<IHorseLoggerProvider>;
-    class function ValidateValue(AValue: Integer): THorseLoggerLogItemNumber; overload;
-    class function ValidateValue(AValue: string): THorseLoggerLogItemString; overload;
-    // Incluido parametro AShort : Boolean - 2022-02-12
-	class function ValidateValue(AValue: TDateTime; AShort : Boolean): THorseLoggerLogItemString; overload;
+    class function ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber; overload;
+    class function ValidateValue(const AValue: string): THorseLoggerLogItemString; overload;
+  	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
   public
-    { public declarations }
     class function HorseCallback: THorseCallback; overload;
-    class function RegisterProvider(AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
+    class function RegisterProvider(const AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
     class property DefaultManager: THorseLoggerManager read GetDefaultManager;
     class destructor UnInitialize;
   end;
@@ -67,10 +63,8 @@ begin
     LMilliSecondsBetween := MilliSecondsBetween(LAfterDateTime, LBeforeDateTime);
     LLog := THorseLoggerLog.Create;
     try
-	  // Incluido valor FALSE para parametro AShort - 2022-02-12
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time', THorseLoggerManager.ValidateValue(LBeforeDateTime, false));
-	  // Incluido opcao 'time_short' - 2022-02-12
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time_short', THorseLoggerManager.ValidateValue(LBeforeDateTime, true));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time', THorseLoggerManager.ValidateValue(LBeforeDateTime, False));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('time_short', THorseLoggerManager.ValidateValue(LBeforeDateTime, True));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('execution_time', THorseLoggerManager.ValidateValue(LMilliSecondsBetween.ToString));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_clientip', THorseLoggerManager.ValidateValue(ClientIP(AReq)));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_method', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.Method));
@@ -161,7 +155,7 @@ begin
   Result := DefaultHorseCallback;
 end;
 
-class function THorseLoggerManager.RegisterProvider(AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
+class function THorseLoggerManager.RegisterProvider(const AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
 begin
   Result := THorseLoggerManager;
   GetProviderList.Add(AProvider);
@@ -182,20 +176,20 @@ begin
   end;
 end;
 
-class function THorseLoggerManager.ValidateValue(AValue: Integer): THorseLoggerLogItemNumber;
+class function THorseLoggerManager.ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber;
 begin
   Result := THorseLoggerLogItemNumber.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(AValue: string): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: string): THorseLoggerLogItemString;
 begin
   Result := THorseLoggerLogItemString.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(AValue: TDateTime; AShort : Boolean): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString;
 begin
-  if (AShort) then
-	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', AValue))
+  if AShort then
+  	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', AValue))
   else
     Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
 end;
