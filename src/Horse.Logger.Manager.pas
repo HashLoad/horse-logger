@@ -25,8 +25,10 @@ type
   protected
     procedure DispatchLogCache; override;
     class function GetProviderList: TList<IHorseLoggerProvider>;
+    class function ByteArrayToHexString(const AValue: TBytes; const ASeparator: string = ''): string;
     class function ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber; overload;
     class function ValidateValue(const AValue: string): THorseLoggerLogItemString; overload;
+    class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString; overload;
   	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
   public
@@ -88,7 +90,7 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_encoding', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_type', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_length', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentLength.ToString));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', THorseLoggerManager.ValidateValue(TEncoding.ANSI.GetString(AReq.RawWebRequest.RawContent)));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.RawContent, ''));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_server', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Server));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_allow', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Allow));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_location', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Location));
@@ -112,6 +114,15 @@ begin
       THorseLoggerManager.GetDefaultManager.NewLog(LLog);
     end;
   end;
+end;
+
+class function THorseLoggerManager.ByteArrayToHexString(const AValue: TBytes; const ASeparator: string): string;
+var
+  LIndex: integer;
+begin
+  Result := '';
+  for LIndex := Low(AValue) to High(AValue) do
+    Result := Result + ASeparator + IntToHex(AValue[LIndex], 2);
 end;
 
 procedure THorseLoggerManager.DispatchLogCache;
@@ -174,6 +185,11 @@ begin
     FDefaultManager.WaitFor;
     FDefaultManager.Free;
   end;
+end;
+
+class function THorseLoggerManager.ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString;
+begin
+  Result := THorseLoggerLogItemString.Create(ByteArrayToHexString(AValue, ASeparator));
 end;
 
 class function THorseLoggerManager.ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber;
