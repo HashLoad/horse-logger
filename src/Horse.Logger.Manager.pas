@@ -217,6 +217,7 @@ var
 begin
   if ((AValue <> '') and (Pos('application/json', AContentType) > 0)) then
   begin
+    LJSON := nil;
     try
       try
         LJSON := {$IF DEFINED(FPC)} GetJSON(AValue) {$ELSE} TJSONObject.ParseJSONValue(AValue) {$ENDIF};
