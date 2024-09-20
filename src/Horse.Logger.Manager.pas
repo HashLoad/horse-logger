@@ -28,6 +28,7 @@ type
     class function ByteArrayToHexString(const AValue: TBytes; const ASeparator: string = ''): string;
     class function ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber; overload;
     class function ValidateValue(const AValue: string): THorseLoggerLogItemString; overload;
+    class function ValidateValue(const AValue: string; const AContentType: string): THorseLoggerLogItemString; overload;
     class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString; overload;
   	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
@@ -97,7 +98,7 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_encoding', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_type', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content_length', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentLength.ToString));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Content));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_content', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Content, AReq.RawWebRequest.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_status', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.{$IF DEFINED(FPC)}Code.ToString(){$ELSE}StatusCode.ToString{$ENDIF}));
       {$IF NOT DEFINED(FPC)}
         LLog.AddPair('request_derived_from', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.DerivedFrom));
@@ -208,6 +209,30 @@ begin
   	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', AValue))
   else
     Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
+end;
+
+class function THorseLoggerManager.ValidateValue(const AValue: string; const AContentType: string): THorseLoggerLogItemString;
+var
+  LJSON: {$IF DEFINED(FPC)}TJsonData{$ELSE}TJSONValue{$ENDIF};
+begin
+  if ((AValue <> '') and (Pos('application/json', AContentType) > 0)) then
+  begin
+    try
+      try
+        LJSON := {$IF DEFINED(FPC)} GetJSON(AValue) {$ELSE} TJSONObject.ParseJSONValue(AValue) {$ENDIF};
+        if Assigned(LJSON) then
+          Result := THorseLoggerLogItemString.Create(LJSON.ToString)
+        else
+          Result := THorseLoggerLogItemString.Create(AValue);
+      except
+        Result := THorseLoggerLogItemString.Create(AValue);
+      end;
+    finally
+      LJSON.Free;
+    end;
+  end
+  else
+    Result := THorseLoggerLogItemString.Create(AValue);
 end;
 
 end.
