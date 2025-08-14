@@ -1,5 +1,5 @@
 # horse-logger
-<b>horse-logger</b> is a official middleware to register log in APIs developed with the <a href="https://github.com/HashLoad/horse">Horse</a> framework.
+<b>horse-logger</b> is an official middleware for logging in APIs developed with the <a href="https://github.com/HashLoad/horse">Horse</a> framework.
 <br>We created a channel on Telegram for questions and support:<br><br>
 <a href="https://t.me/hashload">
   <img src="https://img.shields.io/badge/telegram-join%20channel-7289DA?style=flat-square">
