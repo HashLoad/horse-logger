@@ -90,6 +90,7 @@ begin
       Continue;
     end;
   end;
+  DispatchLogCache;
 end;
 
 function THorseLoggerThread.ExtractLogCache: THorseLoggerCache;

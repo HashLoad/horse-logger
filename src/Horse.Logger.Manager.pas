@@ -15,6 +15,8 @@ uses
   Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse, Horse.Logger.Thread;
 
 type
+  THorseLoggerErrorCallback = reference to procedure(const AProvider: IHorseLoggerProvider; const AException: Exception);
+
   THorseLoggerManager = class;
   THorseLoggerManagerClass = class of THorseLoggerManager;
 
@@ -22,6 +24,7 @@ type
   private
     class var FProviderList: TList<IHorseLoggerProvider>;
     class var FDefaultManager: THorseLoggerManager;
+    class var FOnError: THorseLoggerErrorCallback;
   protected
     procedure DispatchLogCache; override;
     class function GetProviderList: TList<IHorseLoggerProvider>;
@@ -32,10 +35,12 @@ type
     class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString; overload;
   	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
+    class procedure LogError(const AMsg: string);
   public
     class function HorseCallback: THorseCallback; overload;
     class function RegisterProvider(const AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
     class property DefaultManager: THorseLoggerManager read GetDefaultManager;
+    class property OnError: THorseLoggerErrorCallback read FOnError write FOnError;
     class destructor UnInitialize;
   end;
 
@@ -46,6 +51,9 @@ uses
   DateUtils, HTTPDefs,
 {$ELSE}
   Web.HTTPApp, System.DateUtils,
+  {$IFDEF MSWINDOWS}
+  Winapi.Windows,
+  {$ENDIF}
 {$ENDIF}
   Horse.Utils.ClientIP;
 
@@ -57,8 +65,10 @@ var
   LBeforeDateTime: TDateTime;
   LAfterDateTime: TDateTime;
   LMilliSecondsBetween: Integer;
+  LRequestContent: THorseLoggerLogItemString;
 begin
   LBeforeDateTime := Now();
+  LRequestContent := THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)} TEncoding.ANSI.GetBytes({$ENDIF}AReq.RawWebRequest.{$IF DEFINED(FPC)}Content){$ELSE}RawContent{$ENDIF});
   try
     ANext();
   finally
@@ -91,7 +101,7 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_encoding', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_type', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_length', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentLength.ToString));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)} TEncoding.ANSI.GetBytes({$ENDIF}AReq.RawWebRequest.{$IF DEFINED(FPC)}Content){$ELSE}RawContent{$ENDIF}));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', LRequestContent);
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_server', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Server));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_allow', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Allow));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_location', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Location));
@@ -111,8 +121,10 @@ begin
         LLog.AddPair('response_title', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Title));
         LLog.AddPair('response_content_version', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentVersion));
       {$ENDIF}
-    finally
       THorseLoggerManager.GetDefaultManager.NewLog(LLog);
+    except
+      LRequestContent.Free;
+      LLog.Free;
     end;
   end;
 end;
@@ -126,6 +138,20 @@ begin
     Result := Result + ASeparator + IntToHex(AValue[LIndex], 2);
 end;
 
+class procedure THorseLoggerManager.LogError(const AMsg: string);
+begin
+  {$IFDEF MSWINDOWS}
+  OutputDebugString(PChar(AMsg));
+  {$ENDIF}
+  if System.IsConsole then
+  begin
+    try
+      System.Writeln(System.ErrOutput, AMsg);
+    except
+    end;
+  end;
+end;
+
 procedure THorseLoggerManager.DispatchLogCache;
 var
   LLogCache: THorseLoggerCache;
@@ -136,8 +162,25 @@ begin
   try
     for I := 0 to Pred(GetProviderList.Count) do
     begin
-      if Supports(GetProviderList.Items[I], IHorseLoggerProvider, LHorseLoggerProvider)  then
-        LHorseLoggerProvider.DoReceiveLogCache(LLogCache);
+      try
+        if Supports(GetProviderList.Items[I], IHorseLoggerProvider, LHorseLoggerProvider)  then
+          LHorseLoggerProvider.DoReceiveLogCache(LLogCache);
+      except
+        on E: Exception do
+        begin
+          if Assigned(FOnError) then
+          begin
+            try
+              FOnError(GetProviderList.Items[I], E);
+            except
+              on E2: Exception do
+                LogError('[Horse.Logger] Erro interno no callback OnError: ' + E2.Message);
+            end;
+          end
+          else
+            LogError('[Horse.Logger] Erro no provedor: ' + E.Message);
+        end;
+      end;
     end;
   finally
     LLogCache.Free;
@@ -175,16 +218,17 @@ end;
 
 class destructor THorseLoggerManager.UnInitialize;
 begin
-  if FProviderList <> nil then
-  begin
-    FProviderList.Free;
-  end;
   if FDefaultManager <> nil then
   begin
     FDefaultManager.Terminate;
     FDefaultManager.GetEvent.SetEvent;
     FDefaultManager.WaitFor;
     FDefaultManager.Free;
+  end;
+  if FProviderList <> nil then
+  begin
+    FProviderList.Free;
+    FProviderList := nil;
   end;
 end;
 
