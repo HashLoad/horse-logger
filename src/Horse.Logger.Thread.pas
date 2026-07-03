@@ -29,6 +29,7 @@ type
 
   protected
     { protected declarations }
+    FMaxCacheSize: Integer;
     function GetLogCache: THorseLoggerCache;
 
     function GetCriticalSection: TCriticalSection;
@@ -55,6 +56,7 @@ begin
   FEvent := TEvent.Create{$IFDEF FPC}(nil, False, True, TGuid.NewGuid.ToString(True)){$ENDIF};
   FCriticalSection := TCriticalSection.Create;
   FLogCache := THorseLoggerCache.Create;
+  FMaxCacheSize := 0;
 end;
 
 procedure THorseLoggerThread.BeforeDestruction;
@@ -80,7 +82,6 @@ begin
   while not(Self.Terminated) do
   begin
     LWait := GetEvent.WaitFor(INFINITE);
-    GetEvent.ResetEvent;
     case LWait of
       wrSignaled:
         begin
@@ -90,31 +91,25 @@ begin
       Continue;
     end;
   end;
+  DispatchLogCache;
 end;
 
 function THorseLoggerThread.ExtractLogCache: THorseLoggerCache;
 var
-  LLogCache: THorseLoggerCache;
+  LTempCache: THorseLoggerCache;
 begin
-  GetCriticalSection.Enter;
+  LTempCache := THorseLoggerCache.Create(True);
   try
-    LLogCache := THorseLoggerCache.Create;
-    while GetLogCache.Count > 0 do
-      LLogCache.Add(
-      {$IFDEF FPC }
-        GetLogCache.ExtractIndex(0)
-      {$ELSE}
-        {$IFDEF CompilerVersion >= 33.0}
-        GetLogCache.ExtractAt(0)
-        {$ELSE}
-        GetLogCache.Extract(GetLogCache.Items[0])
-        {$ENDIF}
-      {$ENDIF}
-      );
-    Result := LLogCache;
-    ResetLogCache;
-  finally
-    GetCriticalSection.Leave;
+    GetCriticalSection.Enter;
+    try
+      Result := FLogCache;
+      FLogCache := LTempCache;
+    finally
+      GetCriticalSection.Leave;
+    end;
+  except
+    LTempCache.Free;
+    raise;
   end;
 end;
 
@@ -136,6 +131,20 @@ end;
 function THorseLoggerThread.NewLog(ALog: THorseLoggerLog): THorseLoggerThread;
 begin
   Result := Self;
+  if FMaxCacheSize > 0 then
+  begin
+    GetCriticalSection.Enter;
+    try
+      if GetLogCache.Count >= FMaxCacheSize then
+      begin
+        ALog.Free;
+        Exit;
+      end;
+    finally
+      GetCriticalSection.Leave;
+    end;
+  end;
+
   GetCriticalSection.Enter;
   try
     GetLogCache.Add(ALog);

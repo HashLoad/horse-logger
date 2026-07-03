@@ -15,6 +15,12 @@ uses
   Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse, Horse.Logger.Thread;
 
 type
+  {$IFDEF FPC}
+  THorseLoggerErrorCallback = procedure(const AProvider: IHorseLoggerProvider; const AException: Exception) of object;
+  {$ELSE}
+  THorseLoggerErrorCallback = reference to procedure(const AProvider: IHorseLoggerProvider; const AException: Exception);
+  {$ENDIF}
+
   THorseLoggerManager = class;
   THorseLoggerManagerClass = class of THorseLoggerManager;
 
@@ -22,20 +28,26 @@ type
   private
     class var FProviderList: TList<IHorseLoggerProvider>;
     class var FDefaultManager: THorseLoggerManager;
+    class var FOnError: THorseLoggerErrorCallback;
+    class function GetMaxCacheSize: Integer; static;
+    class procedure SetMaxCacheSize(const AValue: Integer); static;
   protected
     procedure DispatchLogCache; override;
     class function GetProviderList: TList<IHorseLoggerProvider>;
     class function ByteArrayToHexString(const AValue: TBytes; const ASeparator: string = ''): string;
-    class function ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber; overload;
-    class function ValidateValue(const AValue: string): THorseLoggerLogItemString; overload;
-    class function ValidateValue(const AValue: string; const AContentType: string): THorseLoggerLogItemString; overload;
-    class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString; overload;
-  	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString; overload;
+    class function ValidateValue(const AValue: Integer): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+    class function ValidateValue(const AValue: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+    class function ValidateValue(const AValue: string; const AContentType: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+    class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+  	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
+    class procedure LogError(const AMsg: string);
   public
     class function HorseCallback: THorseCallback; overload;
     class function RegisterProvider(const AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
     class property DefaultManager: THorseLoggerManager read GetDefaultManager;
+    class property OnError: THorseLoggerErrorCallback read FOnError write FOnError;
+    class property MaxCacheSize: Integer read GetMaxCacheSize write SetMaxCacheSize;
     class destructor UnInitialize;
   end;
 
@@ -44,8 +56,14 @@ implementation
 uses
 {$IFDEF FPC }
   DateUtils, HTTPDefs,
+  {$IFDEF MSWINDOWS}
+  Windows,
+  {$ENDIF}
 {$ELSE}
   Web.HTTPApp, System.DateUtils,
+  {$IFDEF MSWINDOWS}
+  Winapi.Windows,
+  {$ENDIF}
 {$ENDIF}
   Horse.Utils.ClientIP;
 
@@ -57,8 +75,10 @@ var
   LBeforeDateTime: TDateTime;
   LAfterDateTime: TDateTime;
   LMilliSecondsBetween: Integer;
+  LRequestContent: {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   LBeforeDateTime := Now();
+  LRequestContent := THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)} TEncoding.ANSI.GetBytes({$ENDIF}AReq.RawWebRequest.{$IF DEFINED(FPC)}Content){$ELSE}RawContent{$ENDIF});
   try
     ANext();
   finally
@@ -91,7 +111,7 @@ begin
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_encoding', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentEncoding));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_type', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentType));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content_length', THorseLoggerManager.ValidateValue(AReq.RawWebRequest.ContentLength.ToString));
-      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)} TEncoding.ANSI.GetBytes({$ENDIF}AReq.RawWebRequest.{$IF DEFINED(FPC)}Content){$ELSE}RawContent{$ENDIF}));
+      LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('request_content', LRequestContent);
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_server', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Server));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_allow', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Allow));
       LLog.{$IFDEF FPC}Add{$ELSE}AddPair{$ENDIF}('response_location', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Location));
@@ -111,8 +131,10 @@ begin
         LLog.AddPair('response_title', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.Title));
         LLog.AddPair('response_content_version', THorseLoggerManager.ValidateValue(ARes.RawWebResponse.ContentVersion));
       {$ENDIF}
-    finally
       THorseLoggerManager.GetDefaultManager.NewLog(LLog);
+    except
+      LRequestContent.Free;
+      LLog.Free;
     end;
   end;
 end;
@@ -126,6 +148,20 @@ begin
     Result := Result + ASeparator + IntToHex(AValue[LIndex], 2);
 end;
 
+class procedure THorseLoggerManager.LogError(const AMsg: string);
+begin
+  {$IFDEF MSWINDOWS}
+  OutputDebugString(PChar(AMsg));
+  {$ENDIF}
+  if System.IsConsole then
+  begin
+    try
+      System.Writeln(System.ErrOutput, AMsg);
+    except
+    end;
+  end;
+end;
+
 procedure THorseLoggerManager.DispatchLogCache;
 var
   LLogCache: THorseLoggerCache;
@@ -136,12 +172,39 @@ begin
   try
     for I := 0 to Pred(GetProviderList.Count) do
     begin
-      if Supports(GetProviderList.Items[I], IHorseLoggerProvider, LHorseLoggerProvider)  then
-        LHorseLoggerProvider.DoReceiveLogCache(LLogCache);
+      try
+        if Supports(GetProviderList.Items[I], IHorseLoggerProvider, LHorseLoggerProvider)  then
+          LHorseLoggerProvider.DoReceiveLogCache(LLogCache);
+      except
+        on E: Exception do
+        begin
+          if Assigned(FOnError) then
+          begin
+            try
+              FOnError(GetProviderList.Items[I], E);
+            except
+              on E2: Exception do
+                LogError('[Horse.Logger] Erro interno no callback OnError: ' + E2.Message);
+            end;
+          end
+          else
+            LogError('[Horse.Logger] Erro no provedor: ' + E.Message);
+        end;
+      end;
     end;
   finally
     LLogCache.Free;
   end;
+end;
+
+class function THorseLoggerManager.GetMaxCacheSize: Integer;
+begin
+  Result := GetDefaultManager.FMaxCacheSize;
+end;
+
+class procedure THorseLoggerManager.SetMaxCacheSize(const AValue: Integer);
+begin
+  GetDefaultManager.FMaxCacheSize := AValue;
 end;
 
 class function THorseLoggerManager.GetDefaultManager: THorseLoggerManager;
@@ -175,10 +238,6 @@ end;
 
 class destructor THorseLoggerManager.UnInitialize;
 begin
-  if FProviderList <> nil then
-  begin
-    FProviderList.Free;
-  end;
   if FDefaultManager <> nil then
   begin
     FDefaultManager.Terminate;
@@ -186,50 +245,50 @@ begin
     FDefaultManager.WaitFor;
     FDefaultManager.Free;
   end;
+  if FProviderList <> nil then
+  begin
+    FProviderList.Free;
+    FProviderList := nil;
+  end;
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: TBytes; const ASeparator: string = ''): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   Result := THorseLoggerLogItemString.Create(ByteArrayToHexString(AValue, ASeparator));
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber;
+class function THorseLoggerManager.ValidateValue(const AValue: Integer): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   Result := THorseLoggerLogItemNumber.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: string): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   Result := THorseLoggerLogItemString.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: TDateTime; const AShort: Boolean): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   if AShort then
-  	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', AValue))
+  	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MM/yyyy hh:mm:ss.zzz', AValue))
   else
     Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: string; const AContentType: string): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: string; const AContentType: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 var
   LJSON: {$IF DEFINED(FPC)}TJsonData{$ELSE}TJSONValue{$ENDIF};
 begin
   if ((AValue <> '') and (Pos('application/json', AContentType) > 0)) then
   begin
-    LJSON := nil;
     try
-      try
-        LJSON := {$IF DEFINED(FPC)} GetJSON(AValue) {$ELSE} TJSONObject.ParseJSONValue(AValue) {$ENDIF};
-        if Assigned(LJSON) then
-          Result := THorseLoggerLogItemString.Create(LJSON.ToString)
-        else
-          Result := THorseLoggerLogItemString.Create(AValue);
-      except
+      LJSON := {$IF DEFINED(FPC)} GetJSON(AValue) {$ELSE} TJSONObject.ParseJSONValue(AValue) {$ENDIF};
+      if Assigned(LJSON) then
+        Result := LJSON
+      else
         Result := THorseLoggerLogItemString.Create(AValue);
-      end;
-    finally
-      LJSON.Free;
+    except
+      Result := THorseLoggerLogItemString.Create(AValue);
     end;
   end
   else
