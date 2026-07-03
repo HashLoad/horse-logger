@@ -95,27 +95,20 @@ end;
 
 function THorseLoggerThread.ExtractLogCache: THorseLoggerCache;
 var
-  LLogCache: THorseLoggerCache;
+  LTempCache: THorseLoggerCache;
 begin
-  GetCriticalSection.Enter;
+  LTempCache := THorseLoggerCache.Create(True);
   try
-    LLogCache := THorseLoggerCache.Create;
-    while GetLogCache.Count > 0 do
-      LLogCache.Add(
-      {$IFDEF FPC }
-        GetLogCache.ExtractIndex(0)
-      {$ELSE}
-        {$IFDEF CompilerVersion >= 33.0}
-        GetLogCache.ExtractAt(0)
-        {$ELSE}
-        GetLogCache.Extract(GetLogCache.Items[0])
-        {$ENDIF}
-      {$ENDIF}
-      );
-    Result := LLogCache;
-    ResetLogCache;
-  finally
-    GetCriticalSection.Leave;
+    GetCriticalSection.Enter;
+    try
+      Result := FLogCache;
+      FLogCache := LTempCache;
+    finally
+      GetCriticalSection.Leave;
+    end;
+  except
+    LTempCache.Free;
+    raise;
   end;
 end;
 

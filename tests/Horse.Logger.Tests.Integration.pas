@@ -192,7 +192,10 @@ begin
   Assert.AreEqual('200', LLog.GetValue<string>('response_status'), 'Status code da resposta incorreto no log.');
   
   Assert.AreEqual('7b22696e707574223a2268656c6c6f227d', LLog.GetValue<string>('request_content').ToLower, 'Corpo da requisicao incorreto no log. LOG: ' + LLog.ToString);
-  Assert.IsTrue(LLog.GetValue<string>('response_content').Contains('"input"'), 'Corpo da resposta incorreto no log. LOG: ' + LLog.ToString);
+  var LResponseContent: TJSONValue := LLog.GetValue('response_content');
+  Assert.IsNotNull(LResponseContent, 'response_content nao encontrado no log');
+  Assert.IsTrue(LResponseContent is TJSONObject, 'response_content deveria ser um TJSONObject estruturado.');
+  Assert.AreEqual('hello', TJSONObject(LResponseContent).GetValue<string>('input'), 'Atributo "input" incorreto no response_content do log.');
 end;
 
 procedure THorseLoggerIntegrationTests.TestGET_WithErrorInRoute_ShouldStillLogRequestAndResponse;

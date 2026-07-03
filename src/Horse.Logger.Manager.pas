@@ -29,11 +29,11 @@ type
     procedure DispatchLogCache; override;
     class function GetProviderList: TList<IHorseLoggerProvider>;
     class function ByteArrayToHexString(const AValue: TBytes; const ASeparator: string = ''): string;
-    class function ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber; overload;
-    class function ValidateValue(const AValue: string): THorseLoggerLogItemString; overload;
-    class function ValidateValue(const AValue: string; const AContentType: string): THorseLoggerLogItemString; overload;
-    class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString; overload;
-  	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString; overload;
+    class function ValidateValue(const AValue: Integer): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+    class function ValidateValue(const AValue: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+    class function ValidateValue(const AValue: string; const AContentType: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+    class function ValidateValue(const AValue: TBytes; const ASeparator: string = ''): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
+  	class function ValidateValue(const AValue: TDateTime; const AShort: Boolean): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF}; overload;
     class function GetDefaultManager: THorseLoggerManager; static;
     class procedure LogError(const AMsg: string);
   public
@@ -65,7 +65,7 @@ var
   LBeforeDateTime: TDateTime;
   LAfterDateTime: TDateTime;
   LMilliSecondsBetween: Integer;
-  LRequestContent: THorseLoggerLogItemString;
+  LRequestContent: {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   LBeforeDateTime := Now();
   LRequestContent := THorseLoggerManager.ValidateValue({$IF DEFINED(FPC)} TEncoding.ANSI.GetBytes({$ENDIF}AReq.RawWebRequest.{$IF DEFINED(FPC)}Content){$ELSE}RawContent{$ENDIF});
@@ -232,48 +232,43 @@ begin
   end;
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: TBytes; const ASeparator: string = ''): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: TBytes; const ASeparator: string = ''): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   Result := THorseLoggerLogItemString.Create(ByteArrayToHexString(AValue, ASeparator));
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: Integer): THorseLoggerLogItemNumber;
+class function THorseLoggerManager.ValidateValue(const AValue: Integer): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   Result := THorseLoggerLogItemNumber.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: string): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   Result := THorseLoggerLogItemString.Create(AValue);
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: TDateTime; const AShort: Boolean): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: TDateTime; const AShort: Boolean): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 begin
   if AShort then
-  	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', AValue))
+  	Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MM/yyyy hh:mm:ss.zzz', AValue))
   else
     Result := THorseLoggerLogItemString.Create(FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', AValue));
 end;
 
-class function THorseLoggerManager.ValidateValue(const AValue: string; const AContentType: string): THorseLoggerLogItemString;
+class function THorseLoggerManager.ValidateValue(const AValue: string; const AContentType: string): {$IF DEFINED(FPC)}TJSONData{$ELSE}TJSONValue{$ENDIF};
 var
   LJSON: {$IF DEFINED(FPC)}TJsonData{$ELSE}TJSONValue{$ENDIF};
 begin
   if ((AValue <> '') and (Pos('application/json', AContentType) > 0)) then
   begin
-    LJSON := nil;
     try
-      try
-        LJSON := {$IF DEFINED(FPC)} GetJSON(AValue) {$ELSE} TJSONObject.ParseJSONValue(AValue) {$ENDIF};
-        if Assigned(LJSON) then
-          Result := THorseLoggerLogItemString.Create(LJSON.ToString)
-        else
-          Result := THorseLoggerLogItemString.Create(AValue);
-      except
+      LJSON := {$IF DEFINED(FPC)} GetJSON(AValue) {$ELSE} TJSONObject.ParseJSONValue(AValue) {$ENDIF};
+      if Assigned(LJSON) then
+        Result := LJSON
+      else
         Result := THorseLoggerLogItemString.Create(AValue);
-      end;
-    finally
-      LJSON.Free;
+    except
+      Result := THorseLoggerLogItemString.Create(AValue);
     end;
   end
   else

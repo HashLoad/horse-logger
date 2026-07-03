@@ -228,130 +228,131 @@ end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_String;
 var
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
 begin
-  LJSONString := THorseLoggerManagerHack.ValidateValue('hello');
+  LJSONValue := THorseLoggerManagerHack.ValidateValue('hello');
   try
-    Assert.AreEqual('hello', LJSONString.Value);
+    Assert.AreEqual('hello', LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_Integer;
 var
-  LJSONNumber: THorseLoggerLogItemNumber;
+  LJSONValue: TJSONValue;
 begin
-  LJSONNumber := THorseLoggerManagerHack.ValidateValue(42);
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(42);
   try
-    Assert.AreEqual('42', LJSONNumber.ToString);
+    Assert.AreEqual('42', LJSONValue.ToString);
   finally
-    LJSONNumber.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_DateTime_Short;
 var
   LDateTime: TDateTime;
-  LJSONString: THorseLoggerLogItemString;
-  LExpected: string;
+  LJSONValue: TJSONValue;
 begin
   LDateTime := EncodeDateTime(2026, 7, 2, 23, 45, 0, 0);
-  LExpected := FormatDateTime('dd/mm/yyyy hh:mm:ss.zzz', LDateTime);
 
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LDateTime, True);
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LDateTime, True);
   try
-    Assert.AreEqual(LExpected, LJSONString.Value);
+    // Asserção estrita literal para garantir que o formato do mês não seja mascarado (MM em vez de mm)
+    Assert.AreEqual('02/07/2026 23:45:00.000', LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_DateTime_Long;
 var
   LDateTime: TDateTime;
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
   LExpected: string;
 begin
   LDateTime := EncodeDateTime(2026, 7, 2, 23, 45, 0, 0);
   LExpected := FormatDateTime('dd/MMMM/yyyy hh:mm:ss.zzz', LDateTime);
 
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LDateTime, False);
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LDateTime, False);
   try
-    Assert.AreEqual(LExpected, LJSONString.Value);
+    Assert.AreEqual(LExpected, LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_Bytes_WithoutSeparator;
 var
   LBytes: TBytes;
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
 begin
   LBytes := TBytes.Create(65, 66, 67);
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LBytes, '');
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LBytes, '');
   try
-    Assert.AreEqual('414243', LJSONString.Value);
+    Assert.AreEqual('414243', LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_Bytes_WithSeparator;
 var
   LBytes: TBytes;
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
 begin
   LBytes := TBytes.Create(65, 66, 67);
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LBytes, '-');
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LBytes, '-');
   try
-    Assert.AreEqual('-41-42-43', LJSONString.Value);
+    Assert.AreEqual('-41-42-43', LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_JSON_Valid;
 var
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
   LJSONInput: string;
 begin
   LJSONInput := '{"name":"Horse","version":"3.1"}';
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LJSONInput, 'application/json');
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LJSONInput, 'application/json');
   try
-    Assert.IsTrue(LJSONString.Value.Contains('"name"'));
-    Assert.IsTrue(LJSONString.Value.Contains('"Horse"'));
+    // Garante que o retorno é um objeto JSON parseado nativamente de forma estruturada
+    Assert.IsTrue(LJSONValue is TJSONObject, 'O valor retornado deveria ser um TJSONObject real.');
+    Assert.AreEqual('Horse', TJSONObject(LJSONValue).GetValue<string>('name'));
+    Assert.AreEqual('3.1', TJSONObject(LJSONValue).GetValue<string>('version'));
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_JSON_Invalid;
 var
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
   LJSONInput: string;
 begin
   LJSONInput := '{"name":';
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LJSONInput, 'application/json');
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LJSONInput, 'application/json');
   try
-    Assert.AreEqual(LJSONInput, LJSONString.Value);
+    Assert.AreEqual(LJSONInput, LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
 procedure THorseLoggerManagerTests.TestValidateValue_JSON_NonJsonContentType;
 var
-  LJSONString: THorseLoggerLogItemString;
+  LJSONValue: TJSONValue;
   LJSONInput: string;
 begin
   LJSONInput := '{"name":"Horse"}';
-  LJSONString := THorseLoggerManagerHack.ValidateValue(LJSONInput, 'text/plain');
+  LJSONValue := THorseLoggerManagerHack.ValidateValue(LJSONInput, 'text/plain');
   try
-    Assert.AreEqual(LJSONInput, LJSONString.Value);
+    Assert.AreEqual(LJSONInput, LJSONValue.Value);
   finally
-    LJSONString.Free;
+    LJSONValue.Free;
   end;
 end;
 
