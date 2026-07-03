@@ -35,14 +35,18 @@ const
 
 class function THorseLoggerUtils.GetFormatParams(AFormat: string): StringArray;
 var
-  LRegex: {$IFDEF FPC}TRegExpr{$ELSE}TRegEx{$ENDIF};
+  LRegex: TRegExpr;
+  LCount: Integer;
 begin
   LRegex := TRegExpr.Create(REGEXP_PARAM);
   try
+    LCount := 0;
     if LRegex.Exec(AFormat) then
     begin
       repeat
-        Result := Result + [LRegex.Match[0].Substring(2, LRegex.Match[0].Length - 3)];
+        Inc(LCount);
+        SetLength(Result, LCount);
+        Result[LCount - 1] := LRegex.Match[0].Substring(2, LRegex.Match[0].Length - 3);
       until not LRegex.ExecNext;
     end;
   finally
@@ -54,12 +58,11 @@ end;
 
 class function THorseLoggerUtils.GetFormatParams(AFormat: string): StringArray;
 var
-  LRegex: TRegEx;
   LMatches: TMatchCollection;
   LIndex: Integer;
 begin
-  LRegex := TRegEx.Create(REGEXP_PARAM);
-  LMatches := LRegex.Matches(AFormat);
+  // Utiliza a chamada estática TRegEx.Matches que possui cache interno e é Thread-Safe por padrão no Delphi
+  LMatches := TRegEx.Matches(AFormat, REGEXP_PARAM);
 
   SetLength(Result, LMatches.Count);
 

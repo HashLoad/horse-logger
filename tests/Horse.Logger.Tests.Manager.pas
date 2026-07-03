@@ -85,6 +85,8 @@ type
     procedure TestNewLog_WithMultipleProviders_ShouldDeliverToAll;
     [Test]
     procedure TestNewLog_WithExtremeConcurrency_ShouldNotDeadlockOrLoseLogs;
+    [Test]
+    procedure TestNewLog_WithMaxCacheSizeLimit_ShouldDiscardLogsAndNotEstouroRAM;
   end;
 
   procedure RegistrarProviderSeNecessario;
@@ -532,6 +534,41 @@ begin
 
   Assert.AreEqual(100, LMatchCount, 'Deveria ter recebido exatamente 100 logs das threads paralelas.');
   TTestProvider.FEnabled := False;
+end;
+
+procedure THorseLoggerManagerTests.TestNewLog_WithMaxCacheSizeLimit_ShouldDiscardLogsAndNotEstouroRAM;
+var
+  I: Integer;
+  LLog: TJSONObject;
+  LCount: Integer;
+begin
+  // Configura limite máximo de segurança de logs na fila como 5
+  THorseLoggerManager.MaxCacheSize := 5;
+  try
+    // Força desativação da thread de despacho para podermos testar o acúmulo da fila de forma determinística
+    TTestProvider.FEnabled := False;
+
+    // Tenta enfilar 10 logs de forma concorrente rápida
+    for I := 1 to 10 do
+    begin
+      LLog := TJSONObject.Create;
+      LLog.AddPair('test_key', 'test_val');
+      THorseLoggerManager.DefaultManager.NewLog(LLog);
+    end;
+
+    // Acessa a fila interna sob lock e valida que ela possui no máximo 5 elementos (os outros 5 foram descartados com sucesso)
+    THorseLoggerManagerHack(THorseLoggerManager.DefaultManager).GetCriticalSection.Enter;
+    try
+      LCount := THorseLoggerManagerHack(THorseLoggerManager.DefaultManager).GetLogCache.Count;
+      Assert.IsTrue(LCount <= 5, 'O tamanho da fila de cache (' + IntToStr(LCount) + ') excedeu o limite máximo (5).');
+    finally
+      THorseLoggerManagerHack(THorseLoggerManager.DefaultManager).GetCriticalSection.Leave;
+    end;
+  finally
+    // Restaura o tamanho do cache para ilimitado
+    THorseLoggerManager.MaxCacheSize := 0;
+    TTestProvider.FEnabled := True;
+  end;
 end;
 
 initialization

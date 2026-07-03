@@ -37,3 +37,4 @@ src/*.~*
 *.a
 *.stat
 *.bak
+*.ppu

@@ -15,7 +15,11 @@ uses
   Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse, Horse.Logger.Thread;
 
 type
+  {$IFDEF FPC}
+  THorseLoggerErrorCallback = procedure(const AProvider: IHorseLoggerProvider; const AException: Exception) of object;
+  {$ELSE}
   THorseLoggerErrorCallback = reference to procedure(const AProvider: IHorseLoggerProvider; const AException: Exception);
+  {$ENDIF}
 
   THorseLoggerManager = class;
   THorseLoggerManagerClass = class of THorseLoggerManager;
@@ -25,6 +29,8 @@ type
     class var FProviderList: TList<IHorseLoggerProvider>;
     class var FDefaultManager: THorseLoggerManager;
     class var FOnError: THorseLoggerErrorCallback;
+    class function GetMaxCacheSize: Integer; static;
+    class procedure SetMaxCacheSize(const AValue: Integer); static;
   protected
     procedure DispatchLogCache; override;
     class function GetProviderList: TList<IHorseLoggerProvider>;
@@ -41,6 +47,7 @@ type
     class function RegisterProvider(const AProvider: IHorseLoggerProvider): THorseLoggerManagerClass;
     class property DefaultManager: THorseLoggerManager read GetDefaultManager;
     class property OnError: THorseLoggerErrorCallback read FOnError write FOnError;
+    class property MaxCacheSize: Integer read GetMaxCacheSize write SetMaxCacheSize;
     class destructor UnInitialize;
   end;
 
@@ -49,6 +56,9 @@ implementation
 uses
 {$IFDEF FPC }
   DateUtils, HTTPDefs,
+  {$IFDEF MSWINDOWS}
+  Windows,
+  {$ENDIF}
 {$ELSE}
   Web.HTTPApp, System.DateUtils,
   {$IFDEF MSWINDOWS}
@@ -185,6 +195,16 @@ begin
   finally
     LLogCache.Free;
   end;
+end;
+
+class function THorseLoggerManager.GetMaxCacheSize: Integer;
+begin
+  Result := GetDefaultManager.FMaxCacheSize;
+end;
+
+class procedure THorseLoggerManager.SetMaxCacheSize(const AValue: Integer);
+begin
+  GetDefaultManager.FMaxCacheSize := AValue;
 end;
 
 class function THorseLoggerManager.GetDefaultManager: THorseLoggerManager;
