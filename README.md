@@ -26,8 +26,32 @@ This middleware is compatible with projects developed in:
 |  [console](https://github.com/HashLoad/horse-logger-provider-console) | &nbsp;&nbsp;&nbsp;✔️ | &nbsp;&nbsp;&nbsp;&nbsp;✔️ |
 |  [file](https://github.com/HashLoad/horse-logger-provider-logfile)    | &nbsp;&nbsp;&nbsp;✔️ | &nbsp;&nbsp;&nbsp;&nbsp;✔️ |
 
-## ⚡️ Quickstart
-Examples are provided within each provider.
+## ⚡️ Quickstart & Samples
+We provide a complete, real-life sample project showing how to integrate `horse-logger` with a custom text file log provider and handle exceptions globally. You can find it in the [`samples/`](samples/console/ConsoleSample.dpr) folder.
+
+### Registering custom providers and handling logging errors:
+```delphi
+uses
+  Horse,
+  Horse.Logger.Manager,
+  Horse.Logger.Provider.Contract;
+
+begin
+  // Set global handler for logging errors (optional but recommended)
+  THorseLoggerManager.OnError := procedure(const AProvider: IHorseLoggerProvider; const AException: Exception)
+    begin
+      Writeln('Log Provider ' + AProvider.ClassName + ' failed: ' + AException.Message);
+    end;
+
+  // Register your custom providers
+  THorseLoggerManager.RegisterProvider(TMyCustomLogProvider.Create);
+
+  // Enable middleware
+  THorse.Use(THorseLoggerManager.HorseCallback);
+
+  THorse.Listen(9000);
+end.
+```
 
 ## ⚠️ License
 `horse-logger` is free and open-source middleware licensed under the [MIT License](https://github.com/HashLoad/horse-logger/blob/master/LICENSE). 
