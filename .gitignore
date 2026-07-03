@@ -38,3 +38,5 @@ src/*.~*
 *.stat
 *.bak
 *.ppu
+*.log
+*.or

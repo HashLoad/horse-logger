@@ -3,15 +3,29 @@ program ConsoleSample;
 {$APPTYPE CONSOLE}
 
 uses
+  {$IFDEF FPC}
+    {$IFDEF UNIX}
+    cthreads,
+    {$ENDIF}
+  SysUtils, Classes, fpjson,
+  {$ELSE}
   System.SysUtils,
   System.Classes,
   System.JSON,
+  {$ENDIF}
   Horse,
   Horse.Logger.Manager,
   Horse.Logger.Provider.Contract,
   Horse.Logger.Types;
 
 type
+  {$IFDEF FPC}
+  TErrorHandler = class
+  public
+    procedure OnLoggerError(const AProvider: IHorseLoggerProvider; const AException: Exception);
+  end;
+  {$ENDIF}
+
   { TTextFileLogProvider }
   // Exemplo de provedor customizado que grava requisições de forma estruturada em arquivo local
   TTextFileLogProvider = class(TInterfacedObject, IHorseLoggerProvider)
@@ -45,12 +59,21 @@ begin
     for LItem in ALogCache do
     begin
       LLogLine := Format('[%s] %s %s - Status: %s - IP: %s - ExecTime: %sms', [
+        {$IFDEF FPC}
+        LItem.Strings['time_short'],
+        LItem.Strings['request_method'],
+        LItem.Strings['request_path_info'],
+        LItem.Strings['response_status'],
+        LItem.Strings['request_clientip'],
+        LItem.Strings['execution_time']
+        {$ELSE}
         LItem.GetValue<string>('time_short'),
         LItem.GetValue<string>('request_method'),
         LItem.GetValue<string>('request_path_info'),
         LItem.GetValue<string>('response_status'),
         LItem.GetValue<string>('request_clientip'),
         LItem.GetValue<string>('execution_time')
+        {$ENDIF}
       ]);
       Writeln(LTextFile, LLogLine);
     end;
@@ -58,6 +81,13 @@ begin
     CloseFile(LTextFile);
   end;
 end;
+
+{$IFDEF FPC}
+procedure TErrorHandler.OnLoggerError(const AProvider: IHorseLoggerProvider; const AException: Exception);
+begin
+  Writeln('[ERROR CALLBACK] Ocorreu uma falha no provedor de log: ' + AException.Message);
+end;
+{$ENDIF}
 
 { Rotas HTTP }
 
@@ -82,13 +112,24 @@ begin
   raise Exception.Create('Erro interno intencional demonstrativo.');
 end;
 
+var
+  {$IFDEF FPC}
+  LErrHandler: TErrorHandler;
+  {$ENDIF}
 begin
+  {$IFDEF FPC}
+  LErrHandler := TErrorHandler.Create;
+  {$ENDIF}
   try
     // 1. Configura tratamento e reporte de erro customizado do logger
+    {$IFDEF FPC}
+    THorseLoggerManager.OnError := LErrHandler.OnLoggerError;
+    {$ELSE}
     THorseLoggerManager.OnError := procedure(const AProvider: IHorseLoggerProvider; const AException: Exception)
       begin
         Writeln('[ERROR CALLBACK] Ocorreu uma falha no provedor de log: ' + AException.Message);
       end;
+    {$ENDIF}
 
     // 2. Registra o nosso provedor de log em arquivo de texto
     THorseLoggerManager.RegisterProvider(TTextFileLogProvider.Create('app.log'));
@@ -115,4 +156,7 @@ begin
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
   end;
+  {$IFDEF FPC}
+  LErrHandler.Free;
+  {$ENDIF}
 end.
