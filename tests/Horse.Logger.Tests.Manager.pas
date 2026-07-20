@@ -5,7 +5,7 @@ interface
 uses
   DUnitX.TestFramework, System.SysUtils, System.JSON, System.SyncObjs, System.DateUtils,
   System.Classes,
-  Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse.Logger.Manager;
+  Horse.Logger.Types, Horse.Logger.Provider.Contract, Horse.Logger.Manager, Horse.Logger.Thread;
 
 type
   TTestProvider = class(TInterfacedObject, IHorseLoggerProvider)
@@ -87,6 +87,8 @@ type
     procedure TestNewLog_WithExtremeConcurrency_ShouldNotDeadlockOrLoseLogs;
     [Test]
     procedure TestNewLog_WithMaxCacheSizeLimit_ShouldDiscardLogsAndNotEstouroRAM;
+    [Test]
+    procedure TestLoggerThreadEvent_ShouldBeAutoReset;
   end;
 
   procedure RegistrarProviderSeNecessario;
@@ -568,6 +570,25 @@ begin
     // Restaura o tamanho do cache para ilimitado
     THorseLoggerManager.MaxCacheSize := 0;
     TTestProvider.FEnabled := True;
+  end;
+end;
+
+procedure THorseLoggerManagerTests.TestLoggerThreadEvent_ShouldBeAutoReset;
+var
+  LThread: THorseLoggerThread;
+  LWaitResult1: TWaitResult;
+  LWaitResult2: TWaitResult;
+begin
+  LThread := THorseLoggerThread.Create(True);
+  try
+    LThread.GetEvent.ResetEvent;
+    LThread.GetEvent.SetEvent;
+    LWaitResult1 := LThread.GetEvent.WaitFor(100);
+    Assert.AreEqual(TWaitResult.wrSignaled, LWaitResult1, 'O primeiro WaitFor deveria retornar wrSignaled apos o SetEvent.');
+    LWaitResult2 := LThread.GetEvent.WaitFor(10);
+    Assert.AreEqual(TWaitResult.wrTimeout, LWaitResult2, 'O segundo WaitFor consecutivo deveria dar timeout (Auto-Reset), mas retornou wrSignaled.');
+  finally
+    LThread.Free;
   end;
 end;
 

@@ -53,7 +53,11 @@ implementation
 procedure THorseLoggerThread.AfterConstruction;
 begin
   inherited;
-  FEvent := TEvent.Create{$IFDEF FPC}(nil, False, True, TGuid.NewGuid.ToString(True)){$ENDIF};
+{$IFDEF FPC}
+  FEvent := TEvent.Create(nil, False, False, TGuid.NewGuid.ToString(True));
+{$ELSE}
+  FEvent := TEvent.Create(nil, False, False, '');
+{$ENDIF}
   FCriticalSection := TCriticalSection.Create;
   FLogCache := THorseLoggerCache.Create;
   FMaxCacheSize := 0;
